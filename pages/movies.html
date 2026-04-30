@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Movies - StreamFlix</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+<nav class="navbar scrolled" id="navbar">
+  <a href="../index.html" class="nav-logo" style="text-decoration:none">
+    <span class="logo-icon">▶</span><span class="logo-text">StreamFlix</span>
+  </a>
+  <div class="nav-links">
+    <a href="../index.html" class="nav-link">Home</a>
+    <a href="movies.html" class="nav-link active">Movies</a>
+    <a href="tv.html" class="nav-link">TV Shows</a>
+    <a href="search.html" class="nav-link">Search</a>
+  </div>
+</nav>
+
+<div class="list-page">
+  <h1>Movies</h1>
+  <div style="display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;">
+    <button class="ep-btn active" onclick="setFilter('popular', this)">Popular</button>
+    <button class="ep-btn" onclick="setFilter('top_rated', this)">Top Rated</button>
+    <button class="ep-btn" onclick="setFilter('now_playing', this)">Now Playing</button>
+    <button class="ep-btn" onclick="setFilter('upcoming', this)">Upcoming</button>
+  </div>
+  <div class="list-grid" id="movieGrid"></div>
+  <button class="load-more-btn" id="loadMoreBtn" onclick="loadMore()">Load More</button>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script>
+let currentPage = 1;
+let currentFilter = "popular";
+
+async function loadMovies(append = false) {
+  const grid = document.getElementById("movieGrid");
+  if (!append) { grid.innerHTML = '<div class="spinner" style="grid-column:1/-1"></div>'; currentPage = 1; }
+  const data = await tmdb(`/movie/${currentFilter}`, { page: currentPage });
+  if (!append) grid.innerHTML = "";
+  data.results.forEach(item => {
+    const card = buildCard(item, "movie");
+    card.style.width = "100%";
+    grid.appendChild(card);
+  });
+  currentPage++;
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll(".ep-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+  loadMovies();
+}
+
+function loadMore() { loadMovies(true); }
+
+loadMovies();
+</script>
+</body>
+</html>

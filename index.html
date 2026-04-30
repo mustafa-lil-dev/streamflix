@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StreamFlix - Watch Free Movies & TV Shows</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar" id="navbar">
+  <div class="nav-logo">
+    <span class="logo-icon">▶</span>
+    <span class="logo-text">StreamFlix</span>
+  </div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link active">Home</a>
+    <a href="pages/movies.html" class="nav-link">Movies</a>
+    <a href="pages/tv.html" class="nav-link">TV Shows</a>
+    <a href="pages/search.html" class="nav-link">Search</a>
+  </div>
+  <div class="nav-right">
+    <button class="search-btn" onclick="window.location='pages/search.html'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-bg" id="heroBg"></div>
+  <div class="hero-overlay"></div>
+  <div class="hero-content" id="heroContent">
+    <div class="hero-badges" id="heroBadges"></div>
+    <h1 class="hero-title" id="heroTitle">Loading...</h1>
+    <p class="hero-desc" id="heroDesc"></p>
+    <div class="hero-meta" id="heroMeta"></div>
+    <div class="hero-actions">
+      <button class="btn-play" id="heroPlayBtn">▶ Play Now</button>
+      <button class="btn-info" id="heroInfoBtn">ℹ More Info</button>
+    </div>
+  </div>
+</section>
+
+<!-- SECTIONS -->
+<main class="main-content">
+
+  <section class="row-section">
+    <h2 class="section-title"><span class="title-bar"></span> Trending Today</h2>
+    <div class="cards-wrapper">
+      <div class="cards-row" id="trendingRow"></div>
+    </div>
+  </section>
+
+  <section class="row-section">
+    <h2 class="section-title"><span class="title-bar"></span> Popular Movies</h2>
+    <div class="cards-wrapper">
+      <div class="cards-row" id="moviesRow"></div>
+    </div>
+  </section>
+
+  <section class="row-section">
+    <h2 class="section-title"><span class="title-bar"></span> Top Rated TV Shows</h2>
+    <div class="cards-wrapper">
+      <div class="cards-row" id="tvRow"></div>
+    </div>
+  </section>
+
+  <section class="row-section">
+    <h2 class="section-title"><span class="title-bar"></span> New Releases</h2>
+    <div class="cards-wrapper">
+      <div class="cards-row" id="newRow"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-logo">
+    <span class="logo-icon">▶</span>
+    <span class="logo-text">StreamFlix</span>
+  </div>
+  <p class="footer-note">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+  <p class="footer-copy">© 2026 StreamFlix. All rights reserved.</p>
+</footer>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/home.js"></script>
+</body>
+</html>

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watch - StreamFlix</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body style="background:#000">
+
+<nav class="navbar scrolled" id="navbar">
+  <a href="../index.html" class="nav-logo" style="text-decoration:none">
+    <span class="logo-icon">▶</span>
+    <span class="logo-text">StreamFlix</span>
+  </a>
+  <div class="nav-links">
+    <a href="../index.html" class="nav-link">Home</a>
+    <a href="movies.html" class="nav-link">Movies</a>
+    <a href="tv.html" class="nav-link">TV Shows</a>
+    <a href="search.html" class="nav-link">Search</a>
+  </div>
+</nav>
+
+<div class="watch-page">
+  <div class="player-wrap" id="playerWrap">
+    <div class="spinner" style="margin:auto;position:absolute;top:50%;left:50%;transform:translate(-50%,-50%)"></div>
+  </div>
+  <div class="watch-info">
+    <a class="back-btn" id="backBtn" href="#">← Back to Details</a>
+    <div class="watch-title" id="watchTitle">Loading...</div>
+    <div class="watch-meta" id="watchMeta"></div>
+
+    <!-- TV episode nav -->
+    <div id="tvControls" style="display:none;margin-top:16px;">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <select class="season-select" id="seasonSel" onchange="changeSeason()"></select>
+        <button class="btn-play" style="padding:10px 20px;font-size:13px" onclick="prevEp()">◀ Prev</button>
+        <button class="btn-play" style="padding:10px 20px;font-size:13px" onclick="nextEp()">Next ▶</button>
+      </div>
+      <div class="episode-grid" id="epGrid" style="margin-top:16px"></div>
+    </div>
+
+    <!-- Similar -->
+    <div id="similarWrap" style="margin-top:40px;display:none">
+      <h3 style="font-size:20px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:10px">
+        <span class="title-bar"></span> You May Also Like
+      </h3>
+      <div class="cards-wrapper">
+        <div class="cards-row" id="similarRow"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const type = params.get("type") || "movie";
+const id = params.get("id");
+let season = parseInt(params.get("season") || "1");
+let episode = parseInt(params.get("episode") || "1");
+let totalSeasons = [];
+let totalEpisodes = 0;
+let currentDetail = null;
+
+function embedPlayer() {
+  const wrap = document.getElementById("playerWrap");
+  let url = "";
+  if (type === "movie") {
+    url = `${CONFIG.PLAYER_MOVIE_URL}${id}`;
+  } else {
+    url = `${CONFIG.PLAYER_TV_URL}${id}/${season}/${episode}`;
+  }
+  wrap.innerHTML = `<iframe src="${url}" allowfullscreen allow="autoplay; fullscreen; encrypted-media" referrerpolicy="no-referrer"></iframe>`;
+}
+
+async function loadWatch() {
+  document.getElementById("backBtn").href = `detail.html?type=${type}&id=${id}`;
+  embedPlayer();
+
+  try {
+    const [detail, similar] = await Promise.all([
+      tmdb(`/${type}/${id}`),
+      tmdb(`/${type}/${id}/similar`),
+    ]);
+    currentDetail = detail;
+
+    const title = detail.title || detail.name;
+    document.title = `Watch ${title} - StreamFlix`;
+    document.getElementById("watchTitle").textContent = title;
+
+    let meta = `${formatDate(detail.release_date || detail.first_air_date)}`;
+    if (type === "tv") meta += ` • Season ${season} Episode ${episode}`;
+    document.getElementById("watchMeta").textContent = meta;
+
+    // TV controls
+    if (type === "tv" && detail.seasons) {
+      totalSeasons = detail.seasons.filter(s => s.season_number > 0);
+      document.getElementById("tvControls").style.display = "block";
+      const sel = document.getElementById("seasonSel");
+      sel.innerHTML = totalSeasons.map(s => 
+        `<option value="${s.season_number}" ${s.season_number === season ? "selected" : ""}>Season ${s.season_number}</option>`
+      ).join("");
+      await loadEpButtons();
+    }
+
+    // Similar
+    if (similar.results?.length) {
+      document.getElementById("similarWrap").style.display = "block";
+      renderRow("similarRow", similar.results.slice(0, 15), type);
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function loadEpButtons() {
+  const grid = document.getElementById("epGrid");
+  grid.innerHTML = '<div class="spinner" style="width:24px;height:24px;border-width:2px"></div>';
+  try {
+    const data = await tmdb(`/tv/${id}/season/${season}`);
+    const eps = data.episodes || [];
+    totalEpisodes = eps.length;
+    grid.innerHTML = eps.map(ep => `
+      <button class="ep-btn ${ep.episode_number === episode ? "active" : ""}" 
+        onclick="switchEp(${ep.episode_number})">
+        E${ep.episode_number}
+      </button>
+    `).join("");
+  } catch(e) { grid.innerHTML = ""; }
+}
+
+function switchEp(ep) {
+  episode = ep;
+  updateUrl();
+  embedPlayer();
+  document.getElementById("watchMeta").textContent = 
+    `${formatDate(currentDetail?.release_date || currentDetail?.first_air_date)} • Season ${season} Episode ${episode}`;
+  loadEpButtons();
+}
+
+async function changeSeason() {
+  season = parseInt(document.getElementById("seasonSel").value);
+  episode = 1;
+  updateUrl();
+  embedPlayer();
+  await loadEpButtons();
+}
+
+function prevEp() { if (episode > 1) switchEp(episode - 1); }
+function nextEp() { if (episode < totalEpisodes) switchEp(episode + 1); }
+
+function updateUrl() {
+  const url = new URL(window.location);
+  url.searchParams.set("season", season);
+  url.searchParams.set("episode", episode);
+  window.history.replaceState({}, "", url);
+}
+
+loadWatch();
+</script>
+</body>
+</html>

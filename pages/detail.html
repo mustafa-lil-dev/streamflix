@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detail - StreamFlix</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<nav class="navbar scrolled" id="navbar">
+  <a href="../index.html" class="nav-logo" style="text-decoration:none">
+    <span class="logo-icon">▶</span>
+    <span class="logo-text">StreamFlix</span>
+  </a>
+  <div class="nav-links">
+    <a href="../index.html" class="nav-link">Home</a>
+    <a href="movies.html" class="nav-link">Movies</a>
+    <a href="tv.html" class="nav-link">TV Shows</a>
+    <a href="search.html" class="nav-link">Search</a>
+  </div>
+</nav>
+
+<div class="detail-page" id="detailPage">
+  <div class="spinner" style="margin-top:120px"></div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script>
+const params = new URLSearchParams(window.location.search);
+const type = params.get("type") || "movie";
+const id = params.get("id");
+
+async function loadDetail() {
+  const page = document.getElementById("detailPage");
+  try {
+    const [detail, credits, similar] = await Promise.all([
+      tmdb(`/${type}/${id}`, { append_to_response: "videos" }),
+      tmdb(`/${type}/${id}/credits`),
+      tmdb(`/${type}/${id}/similar`),
+    ]);
+
+    const title = detail.title || detail.name;
+    const year = formatDate(detail.release_date || detail.first_air_date);
+    const rating = detail.vote_average ? detail.vote_average.toFixed(1) : "N/A";
+    const runtime = detail.runtime ? `${detail.runtime} min` : detail.episode_run_time?.[0] ? `${detail.episode_run_time[0]} min/ep` : "";
+    const genres = (detail.genres || []).map(g => `<span class="genre-tag">${g.name}</span>`).join("");
+    const cast = (credits.cast || []).slice(0, 12);
+    const seasons = detail.seasons || [];
+
+    document.title = `${title} - StreamFlix`;
+
+    page.innerHTML = `
+      <div class="detail-backdrop-wrap">
+        <img class="detail-backdrop-img" src="${backdropUrl(detail.backdrop_path)}" alt="${title}" />
+        <div class="detail-backdrop-overlay"></div>
+      </div>
+      <div class="detail-body">
+        <div class="detail-poster">
+          <img src="${posterUrl(detail.poster_path)}" alt="${title}" />
+        </div>
+        <div class="detail-info">
+          <div class="detail-title">${title}</div>
+          <div class="detail-meta">
+            <span style="color:${getRatingColor(parseFloat(rating))}">★ ${rating}</span>
+            <span>${year}</span>
+            ${runtime ? `<span>${runtime}</span>` : ""}
+            <span class="hero-type-badge">${type === "tv" ? "TV Show" : "Movie"}</span>
+          </div>
+          <div class="detail-genres">${genres}</div>
+          <p class="detail-overview">${detail.overview || "No description available."}</p>
+          <div class="detail-actions">
+            <button class="btn-play" onclick="goWatch('${type}', ${id})">▶ Play Now</button>
+            <a href="../index.html" class="back-btn">← Back</a>
+          </div>
+
+          ${type === "tv" && seasons.length ? `
+          <div>
+            <h3 style="font-size:16px;font-weight:600;margin-bottom:12px;">Episodes</h3>
+            <select class="season-select" id="seasonSelect" onchange="loadEpisodes(${id}, this.value)">
+              ${seasons.filter(s => s.season_number > 0).map(s => 
+                `<option value="${s.season_number}">Season ${s.season_number} (${s.episode_count} eps)</option>`
+              ).join("")}
+            </select>
+            <div class="episode-grid" id="episodeGrid"></div>
+          </div>
+          ` : ""}
+
+          ${cast.length ? `
+          <div class="cast-section">
+            <h3>Cast</h3>
+            <div class="cast-row">
+              ${cast.map(c => `
+                <div class="cast-card">
+                  <img class="cast-photo" src="${posterUrl(c.profile_path, "w185")}" alt="${c.name}" />
+                  <div class="cast-name">${c.name}</div>
+                  <div class="cast-char">${c.character || ""}</div>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+          ` : ""}
+        </div>
+      </div>
+
+      ${similar.results?.length ? `
+      <div class="similar-section">
+        <h3><span class="title-bar"></span> Similar Titles</h3>
+        <div class="cards-wrapper">
+          <div class="cards-row" id="similarRow"></div>
+        </div>
+      </div>
+      ` : ""}
+    `;
+
+    if (similar.results?.length) {
+      renderRow("similarRow", similar.results.slice(0, 15), type);
+    }
+
+    if (type === "tv" && seasons.length) {
+      const firstSeason = seasons.find(s => s.season_number > 0);
+      if (firstSeason) loadEpisodes(id, firstSeason.season_number);
+    }
+
+  } catch(e) {
+    page.innerHTML = `<p style="color:#f44;padding:100px 40px">Failed to load details.</p>`;
+    console.error(e);
+  }
+}
+
+async function loadEpisodes(seriesId, seasonNum) {
+  const grid = document.getElementById("episodeGrid");
+  if (!grid) return;
+  grid.innerHTML = '<div class="spinner"></div>';
+  try {
+    const data = await tmdb(`/tv/${seriesId}/season/${seasonNum}`);
+    const eps = data.episodes || [];
+    grid.innerHTML = eps.map(ep => `
+      <button class="ep-btn" onclick="goWatchTV(${seriesId}, ${seasonNum}, ${ep.episode_number})">
+        E${ep.episode_number}: ${ep.name.slice(0,20)}
+      </button>
+    `).join("");
+  } catch(e) {
+    grid.innerHTML = '<p style="color:#f44;font-size:13px">Failed to load episodes.</p>';
+  }
+}
+
+function goWatchTV(id, season, episode) {
+  window.location.href = `watch.html?type=tv&id=${id}&season=${season}&episode=${episode}`;
+}
+
+loadDetail();
+</script>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Search - StreamFlix</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+<nav class="navbar scrolled" id="navbar">
+  <a href="../index.html" class="nav-logo" style="text-decoration:none">
+    <span class="logo-icon">▶</span>
+    <span class="logo-text">StreamFlix</span>
+  </a>
+  <div class="nav-links">
+    <a href="../index.html" class="nav-link">Home</a>
+    <a href="movies.html" class="nav-link">Movies</a>
+    <a href="tv.html" class="nav-link">TV Shows</a>
+    <a href="search.html" class="nav-link active">Search</a>
+  </div>
+  <div class="nav-right">
+    <button class="search-btn" onclick="window.location='search.html'">
+      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    </button>
+  </div>
+</nav>
+
+<div class="search-page">
+  <h1 style="font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:2px;margin-bottom:24px;">Search</h1>
+  <div class="search-box-wrap">
+    <input type="text" id="searchInput" class="search-input" placeholder="Search movies, TV shows..." autofocus />
+    <button class="search-btn-submit" onclick="doSearch()">Search</button>
+  </div>
+  <div id="searchResults" class="search-grid"></div>
+  <div id="loadingSpinner"></div>
+</div>
+
+<script src="../js/config.js"></script>
+<script src="../js/api.js"></script>
+<script>
+let searchTimeout;
+const input = document.getElementById("searchInput");
+const results = document.getElementById("searchResults");
+const spinner = document.getElementById("loadingSpinner");
+
+input.addEventListener("keyup", (e) => {
+  if (e.key === "Enter") doSearch();
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(doSearch, 600);
+});
+
+async function doSearch() {
+  const q = input.value.trim();
+  if (!q) { results.innerHTML = ""; return; }
+  spinner.innerHTML = '<div class="spinner"></div>';
+  results.innerHTML = "";
+  try {
+    const data = await tmdb("/search/multi", { query: q, include_adult: false });
+    spinner.innerHTML = "";
+    if (!data.results.length) {
+      results.innerHTML = '<p style="color:#888;grid-column:1/-1">No results found.</p>';
+      return;
+    }
+    data.results.forEach(item => {
+      if (!item.poster_path && !item.profile_path) return;
+      if (item.media_type === "person") return;
+      results.appendChild(buildCard(item, item.media_type));
+    });
+  } catch(e) {
+    spinner.innerHTML = "";
+    results.innerHTML = '<p style="color:#f44">Error fetching results.</p>';
+  }
+}
+
+// Check URL params for pre-filled search
+const urlQ = new URLSearchParams(window.location.search).get("q");
+if (urlQ) { input.value = urlQ; doSearch(); }
+</script>
+</body>
+</html>
